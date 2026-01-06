@@ -1,27 +1,59 @@
-FROM ubuntu:20.04
-ENV DEBIAN_FRONTEND=noninteractive
+name: Build FFmpeg
 
-RUN echo "deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ focal main restricted universe multiverse" > /etc/apt/sources.list && \
-    echo "deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ focal-updates main restricted universe multiverse" >> /etc/apt/sources.list && \
-    echo "deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ focal-security main restricted universe multiverse" >> /etc/apt/sources.list && \
-    apt-get -y update --quiet && \
-    apt-get -y dist-upgrade && \
-    apt-get -y install build-essential yasm nasm \
-    xxd pkgconf curl wget unzip git subversion mercurial \
-    autoconf automake libtool libtool-bin autopoint gettext cmake clang meson ninja-build \
-    texinfo texi2html help2man flex bison groff \
-    gperf itstool ragel libc6-dev libssl-dev \
-    gtk-doc-tools goobject-introspection gawk \
-    ocaml ocamlbuild libnum-ocaml-dev indent p7zip-full \
-    python3-distutils python3-jinja2 python3-jsonschema python3-apt python-is-python3 && \
-    apt-get -y clean && \
-    git config --global user.email "builder@localhost" && \
-    git config --global user.name "Builder" && \
-    git config --global advice.detachedHead false
+on:
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: 'Publish new release'
+        required: false
+        type: boolean
+        default: false
+      only_build:
+        description: 'Only build ffmpeg'
+        required: false
+        type: boolean
+        default: true
 
-ENV CARGO_HOME="/opt/cargo" RUSTUP_HOME="/opt/rustup" PATH="/opt/cargo/bin:${PATH}"
-RUN curl https://sh.rustup.rs -sf | bash -s -- -y --no-modify-path && \
-    cargo install cargo-c && rm -rf "${CARGO_HOME}"/registry "${CARGO_HOME}"/git
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [win32]
+        variant: [gpl]
 
-RUN --mount=src=.,dst=/input \
-    for s in /input/*.sh; do cp $s /usr/bin/$(echo $s | sed -e 's|\.sh$||' -e 's|\/|_|'); done
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          config-inline: |
+            [worker.oci]
+              max-parallelism = 2
+
+      - name: Build base image
+        run: |
+          docker buildx build \
+            --platform=linux/amd64 \
+            --progress=plain \
+            --tag base-image \
+            ./images/base
+
+      - name: Build FFmpeg
+        run: |
+          docker buildx build \
+            --platform=linux/amd64 \
+            --progress=plain \
+            --output=type=local,dest=./output \
+            --build-arg TARGET=${{ matrix.target }} \
+            --build-arg VARIANT=${{ matrix.variant }} \
+            ./targets/${{ matrix.target }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ffmpeg-${{ matrix.target }}-${{ matrix.variant }}
+          path: ./output/*.zip
