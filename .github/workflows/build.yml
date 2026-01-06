@@ -200,10 +200,10 @@ jobs:
           T="$(echo -n ${{ github.token }} | sha256sum | head -c 64)" && echo -e "::add-mask::${T}\n::stop-commands::${T}"
           ./build.sh ${{ matrix.target }} ${{ matrix.variant }}
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: ffmpeg
-          path: artifacts/*
+          name: ffmpeg-win32-gpl
+          path: ./output/ffmpeg-*-win32-gpl.zip
   publish_release:
     name: Publish release
     if: ${{ !cancelled() && ( github.event_name == 'schedule' || github.event.inputs.doRelease == 'true' ) && needs.build_ffmpeg.result == 'success' }}
@@ -213,7 +213,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ffmpeg
           path: artifacts
