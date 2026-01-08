@@ -36,20 +36,23 @@ jobs:
 
       - name: Build base image
         run: |
-          docker buildx build \
+           docker buildx build \
             --platform=linux/amd64 \
             --progress=plain \
             --tag base-image \
+            --output type=docker,dest=./base-image.tar \
             ./images/base
 
       - name: Build FFmpeg
         run: |
-             docker buildx build \
+            docker buildx build \
               --platform=linux/amd64 \
               --progress=plain \
               --output=type=local,dest=./output \
               --build-arg TARGET=${{ matrix.target }} \
               --build-arg VARIANT=${{ matrix.variant }} \
+              --load \
+              --import src=./base-image.tar,dest=base-image \
               ./targets/${{ matrix.target }}
 
       - name: Upload artifact
