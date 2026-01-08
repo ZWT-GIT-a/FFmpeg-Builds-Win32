@@ -40,7 +40,6 @@ jobs:
             --platform=linux/amd64 \
             --progress=plain \
             --tag base-image \
-            --build-context src=. \
             ./images/base
 
       - name: Build FFmpeg
