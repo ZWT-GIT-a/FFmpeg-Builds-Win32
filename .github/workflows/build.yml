@@ -36,12 +36,12 @@ jobs:
 
       - name: Build base image
         run: |
-           docker buildx build \
-            --platform=linux/amd64 \
-            --progress=plain \
-            --tag base-image \
-            --output type=docker,dest=./base-image.tar \
-            ./images/base
+               docker buildx build \
+                --platform=linux/amd64 \
+                --progress=plain \
+                --tag base-image \
+                --output type=docker,dest=./base-image.tar \
+                ./images/base
 
       - name: Build FFmpeg
         run: |
