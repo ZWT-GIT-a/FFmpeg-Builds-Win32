@@ -1,4 +1,4 @@
-FROM base-image
+COPY --from=0 /usr/bin/* /usr/bin/
 
 # 设置构建参数
 ARG TARGET
