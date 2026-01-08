@@ -28,7 +28,7 @@ RUN curl https://sh.rustup.rs -sf | bash -s -- -y --no-modify-path && \
     cargo install cargo-c && rm -rf "${CARGO_HOME}"/registry "${CARGO_HOME}"/git
 
 # 复制 scripts.d 到容器中
-COPY scripts.d /input/scripts.d
+COPY ./scripts.d /input/scripts.d
 
 # 挂载并复制脚本
 RUN --mount=src=.,dst=/input \
