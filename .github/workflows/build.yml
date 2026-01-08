@@ -37,10 +37,11 @@ jobs:
       - name: Build base image
         run: |
           docker buildx build \
-            --platform=linux/amd64 \
-            --progress=plain \
-            --tag base-image \
-            ./images/base
+          --platform=linux/amd64 \
+          --progress=plain \
+          --tag base-image \
+          --build-context src=. \
+          ./images/base
 
       - name: Build FFmpeg
         run: |
