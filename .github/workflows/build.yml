@@ -44,13 +44,13 @@ jobs:
 
       - name: Build FFmpeg
         run: |
-          docker buildx build \
-            --platform=linux/amd64 \
-            --progress=plain \
-            --output=type=local,dest=./output \
-            --build-arg TARGET=${{ matrix.target }} \
-            --build-arg VARIANT=${{ matrix.variant }} \
-            ./targets/${{ matrix.target }}
+             docker buildx build \
+              --platform=linux/amd64 \
+              --progress=plain \
+              --output=type=local,dest=./output \
+              --build-arg TARGET=${{ matrix.target }} \
+              --build-arg VARIANT=${{ matrix.variant }} \
+              ./targets/${{ matrix.target }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
