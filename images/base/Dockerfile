@@ -27,11 +27,10 @@ ENV CARGO_HOME="/opt/cargo" RUSTUP_HOME="/opt/rustup" PATH="/opt/cargo/bin:${PAT
 RUN curl https://sh.rustup.rs -sf | bash -s -- -y --no-modify-path && \
     cargo install cargo-c && rm -rf "${CARGO_HOME}"/registry "${CARGO_HOME}"/git
 
-# 复制 scripts.d 到容器中
-COPY ./scripts.d /input/scripts.d
+# 直接复制本地 scripts.d（已包含在镜像构建上下文中）
+COPY scripts.d /input/scripts.d
 
-# 挂载并复制脚本
-RUN --mount=src=.,dst=/input \
-    for s in /input/scripts.d/*.sh; do \
+RUN for s in /input/scripts.d/*.sh; do \
+        chmod +x "$s"; \
         cp "$s" "/usr/bin/$(basename "$s" .sh)"; \
     done
