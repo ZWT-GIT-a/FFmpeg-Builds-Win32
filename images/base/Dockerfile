@@ -1,59 +1,34 @@
-name: Build FFmpeg
+FROM ubuntu:20.04
 
-on:
-  workflow_dispatch:
-    inputs:
-      publish_release:
-        description: 'Publish new release'
-        required: false
-        type: boolean
-        default: false
-      only_build:
-        description: 'Only build ffmpeg'
-        required: false
-        type: boolean
-        default: true
+ENV DEBIAN_FRONTEND=noninteractive
 
-jobs:
-  build:
-    runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        target: [win32]
-        variant: [gpl]
+# 使用官方源 + 超时重试机制
+RUN echo 'APT::Acquire::Retries "3";' > /etc/apt/apt.conf.d/80-retries && \
+    echo 'Acquire::http::Timeout "30";' >> /etc/apt/apt.conf.d/80-retries && \
+    echo 'Acquire::https::Timeout "30";' >> /etc/apt/apt.conf.d/80-retries
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+RUN apt-get -y update --quiet && \
+    apt-get -y dist-upgrade && \
+    apt-get -y install build-essential yasm nasm \
+    xxd pkgconf curl wget unzip git subversion mercurial \
+    autoconf automake libtool libtool-bin autopoint gettext cmake clang meson ninja-build \
+    texinfo texi2html help2man flex bison groff \
+    gperf itstool ragel libc6-dev libssl-dev \
+    gtk-doc-tools gobject-introspection gawk \
+    ocaml ocamlbuild libnum-ocaml-dev indent p7zip-full \
+    python3-distutils python3-jinja2 python3-jsonschema python3-apt python-is-python3 && \
+    apt-get -y clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    git config --global user.email "builder@localhost" && \
+    git config --global user.name "Builder" && \
+    git config --global advice.detachedHead false
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          config-inline: |
-            [worker.oci]
-              max-parallelism = 2
+ENV CARGO_HOME="/opt/cargo" RUSTUP_HOME="/opt/rustup" PATH="/opt/cargo/bin:${PATH}"
+RUN curl https://sh.rustup.rs -sf | bash -s -- -y --no-modify-path && \
+    cargo install cargo-c && rm -rf "${CARGO_HOME}"/registry "${CARGO_HOME}"/git
 
-      - name: Build base image
-        run: |
-          docker buildx build \
-            --platform=linux/amd64 \
-            --progress=plain \
-            --tag base-image \
-            ./images/base
-
-      - name: Build FFmpeg
-        run: |
-          docker buildx build \
-            --platform=linux/amd64 \
-            --progress=plain \
-            --output=type=local,dest=./output \
-            --build-arg TARGET=${{ matrix.target }} \
-            --build-arg VARIANT=${{ matrix.variant }} \
-            ./targets/${{ matrix.target }}
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ffmpeg-${{ matrix.target }}-${{ matrix.variant }}
-          path: ./output/*.zip
+# 挂载 scripts.d 目录中的脚本
+RUN --mount=src=.,dst=/input \
+    for s in /input/scripts.d/*.sh; do \
+        cp "$s" "/usr/bin/$(basename "$s" .sh)"; \
+    done
