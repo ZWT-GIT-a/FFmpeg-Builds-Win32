@@ -52,7 +52,6 @@ jobs:
               --build-arg TARGET=${{ matrix.target }} \
               --build-arg VARIANT=${{ matrix.variant }} \
               --load \
-              --import src=./base-image.tar,dest=base-image \
               ./targets/${{ matrix.target }}
 
       - name: Upload artifact
